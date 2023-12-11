@@ -12,7 +12,6 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<APIDbContext>(options => options.UseInMemoryDatabase("ClientsDb"));
 
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
