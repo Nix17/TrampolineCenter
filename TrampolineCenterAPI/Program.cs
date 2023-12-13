@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 using TrampolineCenterAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,8 +24,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// METRICS
+app.UseHttpMetrics();
+
 app.UseAuthorization();
 
+// METRICS
+app.MapMetrics();
 app.MapControllers();
 
 app.Run();
