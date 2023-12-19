@@ -1,5 +1,14 @@
 # TrampolineCenter
 
+```
+docker run --name StudyAPI --rm -d  webapi/trampoline-center:0.1 -p 8080:7041
+```
+
+```
+dotnet dev-certs https --clean
+dotnet dev-certs https
+```
+
 ## Доверие HTTPS-сертификату Windows Subsystem for Linux (WSL)
 
 На Windows Subsystem for Linux (WSL) генерируется самоподписанный HTTPS-сертификат для разработки. По умолчанию этот сертификат не доверяется из Windows. Чтобы решить эту проблему, мы настраиваем WSL использовать тот же сертификат, что и Windows.

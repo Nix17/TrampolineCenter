@@ -9,9 +9,9 @@ namespace TrampolineCenterAPI.Controllers
     [Route("api/[controller]")]
     public class ClientsController : Controller
     {
-        private readonly APIDbContext dbContext;
+        private readonly ApplicationDbContext dbContext;
 
-        public ClientsController(APIDbContext dbContext)
+        public ClientsController(ApplicationDbContext dbContext)
         {
             this.dbContext = dbContext;
         }

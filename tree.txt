@@ -1,0 +1,17 @@
+├── README.md
+├── TrampolineCenterAPI
+│   ├── Controllers
+│   │   └── ClientsController.cs
+│   ├── Data
+│   │   └── APIDbContext.cs
+│   ├── Models
+│   │   ├── AddClientRequest.cs
+│   │   ├── Client.cs
+│   │   └── UpdateClientRequest.cs
+│   ├── Program.cs
+│   ├── Properties
+│   │   └── launchSettings.json
+│   ├── TrampolineCenterAPI.csproj
+│   ├── appsettings.Development.json
+│   └── appsettings.json
+└── TrampolineCenterAPI.sln

@@ -3,9 +3,9 @@ using TrampolineCenterAPI.Models;
 
 namespace TrampolineCenterAPI.Data
 {
-    public class APIDbContext : DbContext
+    public class ApplicationDbContext : DbContext
     {
-        public APIDbContext(DbContextOptions options) : base(options)
+        public ApplicationDbContext(DbContextOptions options) : base(options)
         {
         }
 
