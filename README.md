@@ -1,7 +1,8 @@
 # TrampolineCenter
 
 ```
-docker run --name StudyAPI --rm -d  webapi/trampoline-center:0.1 -p 8080:7041
+docker build -t webapi/trampoline-center:0.1 .
+docker run --name StudyAPI --rm -d -p 80:80 -p 443:443 webapi/trampoline-center:0.1
 ```
 
 ```
