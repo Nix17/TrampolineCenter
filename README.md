@@ -1,10 +1,24 @@
 # TrampolineCenter
-
+https://www.yogihosting.com/docker-https-aspnet-core/
 ```
 docker build -t webapi/trampoline-center:0.1 .
-docker run --name StudyAPI --rm -d -p 80:80 -p 443:443 webapi/trampoline-center:0.1
+docker run --name TrampolineCenterAPI --rm -d -p 80:8080 -p 443:8081 webapi/trampoline-center:0.1
 ```
 
+another
+```
+docker run --name TrampolineCenterAPI --rm -d \
+-p 7000:8080 -p 7001:8081 \
+-e ASPNETCORE_URLS="https://+:8081;http://+:8080" \
+-e ASPNETCORE_HTTPS_PORT=7001 \
+-e ASPNETCORE_Kestrel__Certificates__Default__Password="1234" \
+-e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/TrampolineCenterAPI.pfx \
+-v ${HOME}/https-dev-certs/https:/https/ \
+webapi/trampoline-center:0.1
+```
+После запуска контейнера перейти по адресу + /swagger
+
+opt
 ```
 dotnet dev-certs https --clean
 dotnet dev-certs https
@@ -23,7 +37,7 @@ dotnet dev-certs https
 2. Запустите следующую команду:
 
    ```bash
-   dotnet dev-certs https -ep https.pfx -p $CREDENTIAL_PLACEHOLDER$ --trust
+   dotnet dev-certs https -ep TrampolineCenterAPI.pfx -p $CREDENTIAL_PLACEHOLDER$ --trust
    ```
 
    Замените `$CREDENTIAL_PLACEHOLDER$` на выбранный вами пароль.
@@ -35,7 +49,7 @@ dotnet dev-certs https
 2. Запустите следующую команду:
 
    ```bash
-   dotnet dev-certs https --clean --import https.pfx --password $CREDENTIAL_PLACEHOLDER$
+   dotnet dev-certs https --clean --import TrampolineCenterAPI.pfx --password $CREDENTIAL_PLACEHOLDER$
    ```
 
    Замените `$CREDENTIAL_PLACEHOLDER$` на тот же пароль, который вы использовали при экспорте на Windows.
