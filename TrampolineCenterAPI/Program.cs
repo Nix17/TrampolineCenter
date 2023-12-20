@@ -10,6 +10,16 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("ClientsDb"));
 
+// Добавление поддержки CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder => 
+        builder
+            .SetIsOriginAllowed(_ => true) // Разрешить запросы с любого источника
+            .AllowAnyHeader()
+            .AllowAnyMethod());
+});
+
 var app = builder.Build();
 
 // if (app.Environment.IsDevelopment())
@@ -25,6 +35,9 @@ app.UseHttpsRedirection();
 
 // METRICS
 app.UseHttpMetrics();
+
+// Добавление middleware для обработки CORS перед middleware для авторизации
+app.UseCors();
 
 app.UseAuthorization();
 

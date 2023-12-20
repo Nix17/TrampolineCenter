@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  webapi:
+    image: webapi/trampoline-center:0.1
+    container_name: TrampolineCenterAPI
+    ports:
+      - "7000:8080"
+      - "7001:8081"
+    environment:
+      ASPNETCORE_URLS: "https://+:8081;http://+:8080"
+      ASPNETCORE_HTTPS_PORT: 7001
+      ASPNETCORE_Kestrel__Certificates__Default__Password: "1234"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/TrampolineCenterAPI.pfx"
+    volumes:
+      - ${HOME}/https-dev-certs/https:/https/
+    networks:
+      - trampoline-network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: Prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - trampoline-network
+    depends_on:
+      - webapi
+
+  grafana:
+    image: grafana/grafana
+    container_name: Grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - trampoline-network
+
+networks:
+  trampoline-network:

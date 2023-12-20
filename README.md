@@ -2,7 +2,6 @@
 https://www.yogihosting.com/docker-https-aspnet-core/
 ```
 docker build -t webapi/trampoline-center:0.1 .
-docker run --name TrampolineCenterAPI --rm -d -p 80:8080 -p 443:8081 webapi/trampoline-center:0.1
 ```
 
 another
@@ -17,6 +16,14 @@ docker run --name TrampolineCenterAPI --rm -d \
 webapi/trampoline-center:0.1
 ```
 После запуска контейнера перейти по адресу + /swagger
+
+Также в корне лежит docker-compose.yml, который упрощает запуск
+
+```
+docker-compose up -d
+docker-compose down
+```
+
 
 opt
 ```
