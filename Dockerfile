@@ -5,7 +5,7 @@ RUN groupadd -r app && useradd -r -g app -m -d /app app
 USER app
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
+# EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 ARG BUILD_CONFIGURATION=Release

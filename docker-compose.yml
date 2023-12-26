@@ -6,36 +6,45 @@ services:
     container_name: TrampolineCenterAPI
     ports:
       - "7000:8080"
-      - "7001:8081"
+      # - "7001:8081"
     environment:
-      ASPNETCORE_URLS: "https://+:8081;http://+:8080"
-      ASPNETCORE_HTTPS_PORT: 7001
-      ASPNETCORE_Kestrel__Certificates__Default__Password: "1234"
-      ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/TrampolineCenterAPI.pfx"
-    volumes:
-      - ${HOME}/https-dev-certs/https:/https/
+      ASPNETCORE_URLS: "http://+:8080"
+      # ASPNETCORE_URLS: "https://+:8081;http://+:8080"
+      # ASPNETCORE_HTTPS_PORT: 7001
+      # ASPNETCORE_Kestrel__Certificates__Default__Password: "1234"
+      # ASPNETCORE_Kestrel__Certificates__Default__Path: "/https/TrampolineCenterAPI.pfx"
+    # volumes:
+      # - ${HOME}/https-dev-certs/https:/https/
     networks:
       - trampoline-network
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   prometheus:
-    image: prom/prometheus
+    image: ubuntu/prometheus
     container_name: Prometheus
     ports:
       - "9090:9090"
+    environment:
+      - TZ=Europe/Moscow
     volumes:
-      - ./prometheus:/etc/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
     networks:
       - trampoline-network
-    depends_on:
-      - webapi
+    # depends_on:
+    #   - webapi
 
   grafana:
     image: grafana/grafana
     container_name: Grafana
     ports:
       - "3000:3000"
+    # volumes:
+      # - ./grafana-data/data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
