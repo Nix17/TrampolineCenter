@@ -1,6 +1,106 @@
 version: '3.8'
 
 services:
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./prometheus/loki-config.yaml:/etc/loki-config.yaml
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    command: -config.file=/etc/loki-config.yaml
+    networks:
+      - trampoline_net
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail-config.yaml      
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail-config.yaml
+    networks:
+      - trampoline_net
+
+  vmagent:
+    container_name: vmagent
+    image: victoriametrics/vmagent:v1.94.0
+    depends_on:
+      - "victoriametrics"
+    ports:
+      - 8429:8429
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    volumes:
+      - vmagentdata:/vmagentdata
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--promscrape.config=/etc/prometheus/prometheus.yml"
+      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+      - "-promscrape.config.strictParse=false"
+    networks:
+      - trampoline_net
+
+  victoriametrics:
+    container_name: victoriametrics
+    image: victoriametrics/victoria-metrics:v1.94.0
+    ports:
+      - 8428:8428
+      - 8089:8089
+      - 8089:8089/udp
+      - 2003:2003
+      - 2003:2003/udp
+      - 4242:4242
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    volumes:
+      - vmdata:/storage
+    command:
+      - "--storageDataPath=/storage"
+      - "--graphiteListenAddr=:2003"
+      - "--opentsdbListenAddr=:4242"
+      - "--httpListenAddr=:8428"
+      - "--influxListenAddr=:8089"
+    networks:
+      - trampoline_net
+
+  prometheus:
+    image: prom/prometheus:v2.32.0
+    container_name: Prometheus
+    ports:
+      - "9090:9090"
+    environment:
+      - TZ=Europe/Moscow
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    networks:
+      - trampoline_net
+    # depends_on:
+    #   - webapi
+
+  grafana:
+    image: grafana/grafana:9.2.7
+    container_name: Grafana
+    depends_on:
+      - "victoriametrics"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./provisioning/:/etc/grafana/provisioning/
+      - ./dashboards/victoriametrics.json:/var/lib/grafana/dashboards/vm.json
+      # - ./dashboards/victorialogs.json:/var/lib/grafana/dashboards/vl.json
+      - ./dashboards/vmagent.json:/var/lib/grafana/dashboards/vmagent.json
+      - ./dashboards/vmalert.json:/var/lib/grafana/dashboards/vmalert.json
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - trampoline_net
+
   webapi:
     image: webapi/trampoline-center:0.1
     container_name: TrampolineCenterAPI
@@ -16,39 +116,14 @@ services:
     # volumes:
       # - ${HOME}/https-dev-certs/https:/https/
     networks:
-      - trampoline-network
+      - trampoline_net
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
-  prometheus:
-    image: ubuntu/prometheus
-    container_name: Prometheus
-    ports:
-      - "9090:9090"
-    environment:
-      - TZ=Europe/Moscow
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-    extra_hosts:
-    - "host.docker.internal:host-gateway"
-    networks:
-      - trampoline-network
-    # depends_on:
-    #   - webapi
-
-  grafana:
-    image: grafana/grafana
-    container_name: Grafana
-    ports:
-      - "3000:3000"
-    # volumes:
-      # - ./grafana-data/data:/var/lib/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    networks:
-      - trampoline-network
+volumes:
+  vmagentdata: {}
+  vmdata: {}
+  grafanadata: {}
 
 networks:
-  trampoline-network:
+  trampoline_net:
