@@ -3,6 +3,7 @@ version: '3.8'
 services:
   loki:
     image: grafana/loki:2.9.0
+    container_name: Loki
     ports:
       - "3100:3100"
     volumes:
@@ -13,14 +14,14 @@ services:
     networks:
       - trampoline_net
 
-  promtail:
-    image: grafana/promtail:2.9.0
-    volumes:
-      - ./promtail-config.yaml:/etc/promtail-config.yaml      
-      - /var/log:/var/log
-    command: -config.file=/etc/promtail-config.yaml
-    networks:
-      - trampoline_net
+  # promtail:
+  #   image: grafana/promtail:2.9.0
+  #   volumes:
+  #     - ./promtail-config.yaml:/etc/promtail-config.yaml      
+  #     - /var/log:/var/log
+  #   command: -config.file=/etc/promtail-config.yaml
+  #   networks:
+  #     - trampoline_net
 
   vmagent:
     container_name: vmagent
@@ -36,7 +37,8 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - "--promscrape.config=/etc/prometheus/prometheus.yml"
-      - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+      # - "--remoteWrite.url=http://victoriametrics:8428/api/v1/write"
+      - "--remoteWrite.url=http://host.docker.internal:8428/api/v1/write"
       - "-promscrape.config.strictParse=false"
     networks:
       - trampoline_net
@@ -101,6 +103,27 @@ services:
     networks:
       - trampoline_net
 
+  node-exporter:
+    image: prom/node-exporter:v1.2.2
+    container_name: Node
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    networks:
+      - trampoline_net
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    ports:
+      - 9100:9100
+    deploy:
+      mode: global
+
   webapi:
     image: webapi/trampoline-center:0.1
     container_name: TrampolineCenterAPI
@@ -127,3 +150,4 @@ volumes:
 
 networks:
   trampoline_net:
+    # external: true

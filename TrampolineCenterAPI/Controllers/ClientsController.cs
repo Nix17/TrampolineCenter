@@ -19,6 +19,9 @@ namespace TrampolineCenterAPI.Controllers
         private static readonly Counter updateContactCounter = Metrics.CreateCounter("clients_controller_update_contact_total", "Total number of PUT requests to /api/clients");
         private static readonly Counter deleteContactCounter = Metrics.CreateCounter("clients_controller_delete_contact_total", "Total number of DELETE requests to /api/clients");
 
+        // Метрика с информацией о количестве клиентов
+        private static readonly Gauge totalClientsGauge = Metrics.CreateGauge("clients_controller_total_clients", "Total number of clients");
+
         public ClientsController(ApplicationDbContext dbContext)
         {
             this.dbContext = dbContext;
@@ -31,7 +34,9 @@ namespace TrampolineCenterAPI.Controllers
 
             using (Metrics.CreateHistogram("clients_controller_get_contacts_duration_seconds", "Duration of ClientsController.GetContacts method").NewTimer())
             {
-                return Ok(await dbContext.Clients.ToListAsync());
+                var clients = await dbContext.Clients.ToListAsync();
+                totalClientsGauge.Set(clients.Count); // Устанавливаем значение метрики
+                return Ok(clients);
             }
         }
 
@@ -67,6 +72,11 @@ namespace TrampolineCenterAPI.Controllers
 
                 await dbContext.Clients.AddAsync(contact);
                 await dbContext.SaveChangesAsync();
+
+                // Обновляем значение метрики после добавления клиента
+                var clients = await dbContext.Clients.ToListAsync();
+                totalClientsGauge.Set(clients.Count);
+
                 return Ok(contact);
             }
         }
@@ -90,6 +100,10 @@ namespace TrampolineCenterAPI.Controllers
 
                     await dbContext.SaveChangesAsync();
 
+                    // Обновляем значение метрики после обновления клиента
+                    var clients = await dbContext.Clients.ToListAsync();
+                    totalClientsGauge.Set(clients.Count);
+
                     return Ok(contact);
                 }
 
@@ -111,6 +125,11 @@ namespace TrampolineCenterAPI.Controllers
                 {
                     dbContext.Remove(contact);
                     await dbContext.SaveChangesAsync();
+
+                    // Обновляем значение метрики после удаления клиента
+                    var clients = await dbContext.Clients.ToListAsync();
+                    totalClientsGauge.Set(clients.Count);
+
                     return Ok(contact);
                 }
 
