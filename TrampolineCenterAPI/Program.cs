@@ -1,12 +1,32 @@
 using Microsoft.EntityFrameworkCore;
 using Prometheus;
 using TrampolineCenterAPI.Data;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Sinks.Grafana.Loki;
+
+// Add cfg
+var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add logging 
+// builder.Logging.ClearProviders();
+// var logger = new LoggerConfiguration()
+//     .ReadFrom.Configuration(config)
+//     .WriteTo.GrafanaLoki("http://localhost:3100/loki/api/v1/push") // Замените URL на ваш фактический URL Loki
+//     // .WriteTo.GrafanaLoki("http://localhost:3100/loki/api/v1/push") // Замените URL на ваш фактический URL Loki
+//     // .WriteTo.GrafanaLoki("http://loki:3100/loki/api/v1/push") // Замените URL на ваш фактический URL Loki
+//     .CreateLogger();
+// builder.Logging.AddSerilog(logger);
+
+builder.Logging.ClearProviders();
+var logger = new LoggerConfiguration().ReadFrom.Configuration(config).CreateLogger();
+builder.Logging.AddSerilog(logger);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("ClientsDb"));
 
@@ -27,6 +47,7 @@ var app = builder.Build();
 //     app.UseSwagger();
 //     app.UseSwaggerUI();
 // }
+
 
 app.UseSwagger();
 app.UseSwaggerUI();

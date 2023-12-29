@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Prometheus;
 using System;
 using System.Threading.Tasks;
+using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace TrampolineCenterAPI.Controllers
 {
@@ -13,6 +15,7 @@ namespace TrampolineCenterAPI.Controllers
     public class ClientsController : Controller
     {
         private readonly ApplicationDbContext dbContext;
+        private readonly ILogger<ClientsController> _logger;
 
         private static readonly Counter getContactsCounter = Metrics.CreateCounter("clients_controller_get_contacts_total", "Total number of GET requests to /api/clients");
         private static readonly Counter addContactCounter = Metrics.CreateCounter("clients_controller_add_contact_total", "Total number of POST requests to /api/clients");
@@ -22,9 +25,10 @@ namespace TrampolineCenterAPI.Controllers
         // Метрика с информацией о количестве клиентов
         private static readonly Gauge totalClientsGauge = Metrics.CreateGauge("clients_controller_total_clients", "Total number of clients");
 
-        public ClientsController(ApplicationDbContext dbContext)
+        public ClientsController(ApplicationDbContext dbContext, ILogger<ClientsController> logger)
         {
             this.dbContext = dbContext;
+            this._logger = logger;
         }
 
         [HttpGet]
@@ -34,9 +38,22 @@ namespace TrampolineCenterAPI.Controllers
 
             using (Metrics.CreateHistogram("clients_controller_get_contacts_duration_seconds", "Duration of ClientsController.GetContacts method").NewTimer())
             {
-                var clients = await dbContext.Clients.ToListAsync();
-                totalClientsGauge.Set(clients.Count); // Устанавливаем значение метрики
-                return Ok(clients);
+                try
+                {
+                    var clients = await dbContext.Clients.ToListAsync();
+                    totalClientsGauge.Set(clients.Count); // Устанавливаем значение метрики
+
+                    // Добавляем лог в Loki
+                    _logger.LogInformation("GetContacts method called.");
+
+                    return Ok(clients);
+                }
+                catch (Exception ex)
+                {
+                    // Добавляем лог в Loki при ошибке
+                    _logger.LogError(ex, "Error in GetContacts method.");
+                    return StatusCode(500, "Internal Server Error");
+                }
             }
         }
 
@@ -44,14 +61,26 @@ namespace TrampolineCenterAPI.Controllers
         [Route("{id:guid}")]
         public async Task<IActionResult> GetContact([FromRoute] Guid id)
         {
-            var contact = await dbContext.Clients.FindAsync(id);
-
-            if (contact == null)
+            try
             {
-                return NotFound();
-            }
+                var contact = await dbContext.Clients.FindAsync(id);
 
-            return Ok(contact);
+                if (contact == null)
+                {
+                    return NotFound();
+                }
+
+                // Добавляем лог в Loki
+                _logger.LogInformation($"GetContact method called for contact with Id: {id}");
+
+                return Ok(contact);
+            }
+            catch (Exception ex)
+            {
+                // Добавляем лог в Loki при ошибке
+                _logger.LogError(ex, "Error in GetContact method.");
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         [HttpPost]
@@ -61,23 +90,35 @@ namespace TrampolineCenterAPI.Controllers
 
             using (Metrics.CreateHistogram("clients_controller_add_contact_duration_seconds", "Duration of ClientsController.AddContact method").NewTimer())
             {
-                var contact = new Client()
+                try
                 {
-                    Id = Guid.NewGuid(),
-                    BirthDate = addContactRequest.BirthDate,
-                    Email = addContactRequest.Email,
-                    FullName = addContactRequest.FullName,
-                    Phone = addContactRequest.Phone,
-                };
+                    var contact = new Client()
+                    {
+                        Id = Guid.NewGuid(),
+                        BirthDate = addContactRequest.BirthDate,
+                        Email = addContactRequest.Email,
+                        FullName = addContactRequest.FullName,
+                        Phone = addContactRequest.Phone,
+                    };
 
-                await dbContext.Clients.AddAsync(contact);
-                await dbContext.SaveChangesAsync();
+                    await dbContext.Clients.AddAsync(contact);
+                    await dbContext.SaveChangesAsync();
 
-                // Обновляем значение метрики после добавления клиента
-                var clients = await dbContext.Clients.ToListAsync();
-                totalClientsGauge.Set(clients.Count);
+                    // Обновляем значение метрики после добавления клиента
+                    var clients = await dbContext.Clients.ToListAsync();
+                    totalClientsGauge.Set(clients.Count);
 
-                return Ok(contact);
+                    // Добавляем лог в Loki
+                    _logger.LogInformation($"AddContact method called for contact with Id: {contact.Id}");
+
+                    return Ok(contact);
+                }
+                catch (Exception ex)
+                {
+                    // Добавляем лог в Loki при ошибке
+                    _logger.LogError(ex, "Error in AddContact method.");
+                    return StatusCode(500, "Internal Server Error");
+                }
             }
         }
 
@@ -89,25 +130,37 @@ namespace TrampolineCenterAPI.Controllers
 
             using (Metrics.CreateHistogram("clients_controller_update_contact_duration_seconds", "Duration of ClientsController.UpdateContact method").NewTimer())
             {
-                var contact = await dbContext.Clients.FindAsync(id);
-
-                if (contact != null)
+                try
                 {
-                    contact.FullName = updateContactRequest.FullName;
-                    contact.BirthDate = updateContactRequest.BirthDate;
-                    contact.Phone = updateContactRequest.Phone;
-                    contact.Email = updateContactRequest.Email;
+                    var contact = await dbContext.Clients.FindAsync(id);
 
-                    await dbContext.SaveChangesAsync();
+                    if (contact != null)
+                    {
+                        contact.FullName = updateContactRequest.FullName;
+                        contact.BirthDate = updateContactRequest.BirthDate;
+                        contact.Phone = updateContactRequest.Phone;
+                        contact.Email = updateContactRequest.Email;
 
-                    // Обновляем значение метрики после обновления клиента
-                    var clients = await dbContext.Clients.ToListAsync();
-                    totalClientsGauge.Set(clients.Count);
+                        await dbContext.SaveChangesAsync();
 
-                    return Ok(contact);
+                        // Обновляем значение метрики после обновления клиента
+                        var clients = await dbContext.Clients.ToListAsync();
+                        totalClientsGauge.Set(clients.Count);
+
+                        // Добавляем лог в Loki
+                        _logger.LogInformation($"UpdateContact method called for contact with Id: {id}");
+
+                        return Ok(contact);
+                    }
+
+                    return NotFound();
                 }
-
-                return NotFound();
+                catch (Exception ex)
+                {
+                    // Добавляем лог в Loki при ошибке
+                    _logger.LogError(ex, "Error in UpdateContact method.");
+                    return StatusCode(500, "Internal Server Error");
+                }
             }
         }
 
@@ -119,21 +172,33 @@ namespace TrampolineCenterAPI.Controllers
 
             using (Metrics.CreateHistogram("clients_controller_delete_contact_duration_seconds", "Duration of ClientsController.DeleteContact method").NewTimer())
             {
-                var contact = await dbContext.Clients.FindAsync(id);
-
-                if (contact != null)
+                try
                 {
-                    dbContext.Remove(contact);
-                    await dbContext.SaveChangesAsync();
+                    var contact = await dbContext.Clients.FindAsync(id);
 
-                    // Обновляем значение метрики после удаления клиента
-                    var clients = await dbContext.Clients.ToListAsync();
-                    totalClientsGauge.Set(clients.Count);
+                    if (contact != null)
+                    {
+                        dbContext.Remove(contact);
+                        await dbContext.SaveChangesAsync();
 
-                    return Ok(contact);
+                        // Обновляем значение метрики после удаления клиента
+                        var clients = await dbContext.Clients.ToListAsync();
+                        totalClientsGauge.Set(clients.Count);
+
+                        // Добавляем лог в Loki
+                        _logger.LogInformation($"DeleteContact method called for contact with Id: {id}");
+
+                        return Ok(contact);
+                    }
+
+                    return NotFound();
                 }
-
-                return NotFound();
+                catch (Exception ex)
+                {
+                    // Добавляем лог в Loki при ошибке
+                    _logger.LogError(ex, "Error in DeleteContact method.");
+                    return StatusCode(500, "Internal Server Error");
+                }
             }
         }
     }

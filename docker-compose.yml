@@ -4,27 +4,35 @@ services:
   loki:
     image: grafana/loki:2.9.0
     container_name: Loki
+    hostname: loki
     ports:
       - "3100:3100"
     volumes:
-      - ./prometheus/loki-config.yaml:/etc/loki-config.yaml
+      - ./prometheus/loki-config.yaml:/etc/loki/loki-config.yaml
     extra_hosts:
     - "host.docker.internal:host-gateway"
-    command: -config.file=/etc/loki-config.yaml
+    command: -config.file=/etc/loki/loki-config.yaml
+    healthcheck:
+      test: wget -q --tries=1 -O- http://host.docker.internal:3100
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       - trampoline_net
 
-  # promtail:
-  #   image: grafana/promtail:2.9.0
-  #   volumes:
-  #     - ./promtail-config.yaml:/etc/promtail-config.yaml      
-  #     - /var/log:/var/log
-  #   command: -config.file=/etc/promtail-config.yaml
-  #   networks:
-  #     - trampoline_net
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: Promtail
+    volumes:
+      - ./prometheus/promtail-config.yaml:/etc/promtail-config.yaml      
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail-config.yaml
+    networks:
+      - trampoline_net
 
   vmagent:
-    container_name: vmagent
+    container_name: VMAgent
     image: victoriametrics/vmagent:v1.94.0
     depends_on:
       - "victoriametrics"
@@ -44,7 +52,7 @@ services:
       - trampoline_net
 
   victoriametrics:
-    container_name: victoriametrics
+    container_name: VictoriaMetrics
     image: victoriametrics/victoria-metrics:v1.94.0
     ports:
       - 8428:8428
