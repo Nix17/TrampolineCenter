@@ -15,15 +15,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add logging 
-// builder.Logging.ClearProviders();
-// var logger = new LoggerConfiguration()
-//     .ReadFrom.Configuration(config)
-//     .WriteTo.GrafanaLoki("http://localhost:3100/loki/api/v1/push") // Замените URL на ваш фактический URL Loki
-//     // .WriteTo.GrafanaLoki("http://localhost:3100/loki/api/v1/push") // Замените URL на ваш фактический URL Loki
-//     // .WriteTo.GrafanaLoki("http://loki:3100/loki/api/v1/push") // Замените URL на ваш фактический URL Loki
-//     .CreateLogger();
-// builder.Logging.AddSerilog(logger);
-
 builder.Logging.ClearProviders();
 var logger = new LoggerConfiguration().ReadFrom.Configuration(config).CreateLogger();
 builder.Logging.AddSerilog(logger);
