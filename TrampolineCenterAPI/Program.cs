@@ -7,8 +7,9 @@ using Serilog.Sinks.Grafana.Loki;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Exporter;
-// using OpenTelemetry.Instrumentation.AspNetCore;
-// using OpenTelemetry.Extensions.Hosting;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using Sentry;
 
 internal class Program
 {
@@ -52,6 +53,17 @@ internal class Program
                     .AllowAnyMethod());
         });
 
+        // Sentry
+        builder.WebHost.UseSentry(o =>
+        {
+            o.Dsn = "https://bff1a4cd5cec83af6f73d1813f96bf2d@o4506507825053696.ingest.sentry.io/4506507831345152";
+            // When configuring for the first time, to see what the SDK is doing:
+            o.Debug = true;
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // We recommend adjusting this value in production.
+            o.TracesSampleRate = 1.0;
+        });
+
         var app = builder.Build();
 
         // if (app.Environment.IsDevelopment())
@@ -79,6 +91,11 @@ internal class Program
         // METRICS
         app.MapMetrics();
 
+        //Sentry
+        app.UseSentryTracing();
+
         app.Run();
+
+        SentrySdk.CaptureMessage("Hello Sentry");
     }
 }
