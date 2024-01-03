@@ -4,58 +4,81 @@ using TrampolineCenterAPI.Data;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Exporter;
+// using OpenTelemetry.Instrumentation.AspNetCore;
+// using OpenTelemetry.Extensions.Hosting;
 
-// Add cfg
-var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Add logging 
-builder.Logging.ClearProviders();
-var logger = new LoggerConfiguration().ReadFrom.Configuration(config).CreateLogger();
-builder.Logging.AddSerilog(logger);
-
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("ClientsDb"));
-
-// Добавление поддержки CORS
-builder.Services.AddCors(options =>
+internal class Program
 {
-    options.AddDefaultPolicy(builder => 
-        builder
-            .SetIsOriginAllowed(_ => true) // Разрешить запросы с любого источника
-            .AllowAnyHeader()
-            .AllowAnyMethod());
-});
+    private static void Main(string[] args)
+    {
+        // Add cfg
+        var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").AddEnvironmentVariables().Build();
 
-var app = builder.Build();
+        var builder = WebApplication.CreateBuilder(args);
 
-// if (app.Environment.IsDevelopment())
-// {
-//     app.UseSwagger();
-//     app.UseSwaggerUI();
-// }
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+        // OPTL
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(builder => builder
+                .ConfigureResource(resource => resource.AddService("TrampolineCenterAPI"))
+                .AddAspNetCoreInstrumentation()
+                .AddConsoleExporter()
+                .AddJaegerExporter(opts => {
+                    opts.AgentHost = "host.docker.internal";
+                    opts.AgentPort = 6831;
+                })
+            );
+
+        // Add logging 
+        builder.Logging.ClearProviders();
+        var logger = new LoggerConfiguration().ReadFrom.Configuration(config).CreateLogger();
+        builder.Logging.AddSerilog(logger);
+
+        builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("ClientsDb"));
+
+        // Добавление поддержки CORS
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(builder =>
+                builder
+                    .SetIsOriginAllowed(_ => true) // Разрешить запросы с любого источника
+                    .AllowAnyHeader()
+                    .AllowAnyMethod());
+        });
+
+        var app = builder.Build();
+
+        // if (app.Environment.IsDevelopment())
+        // {
+        //     app.UseSwagger();
+        //     app.UseSwaggerUI();
+        // }
 
 
-app.UseSwagger();
-app.UseSwaggerUI();
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
-// app.UseHttpsRedirection();
+        // app.UseHttpsRedirection();
 
-app.UseRouting();
-// METRICS
-app.UseHttpMetrics();
+        app.UseRouting();
+        // METRICS
+        app.UseHttpMetrics();
 
-// Добавление middleware для обработки CORS перед middleware для авторизации
-app.UseCors();
+        // Добавление middleware для обработки CORS перед middleware для авторизации
+        app.UseCors();
 
-app.UseAuthorization();
+        app.UseAuthorization();
 
-app.MapControllers();
-// METRICS
-app.MapMetrics();
+        app.MapControllers();
+        // METRICS
+        app.MapMetrics();
 
-app.Run();
+        app.Run();
+    }
+}
