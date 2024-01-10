@@ -10,6 +10,7 @@ using OpenTelemetry.Exporter;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Sentry;
+using System.Diagnostics;
 
 internal class Program
 {
@@ -34,6 +35,11 @@ internal class Program
                     opts.AgentHost = "host.docker.internal";
                     opts.AgentPort = 6831;
                 })
+                .AddSource("Tracing.NET")
+                .SetResourceBuilder(
+                    ResourceBuilder.CreateDefault()
+                        .AddService(serviceName: "Tracing.NET")
+                )
             );
 
         // Add logging 
@@ -88,6 +94,7 @@ internal class Program
         app.UseAuthorization();
 
         app.MapControllers();
+
         // METRICS
         app.MapMetrics();
 

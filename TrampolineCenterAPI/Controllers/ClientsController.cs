@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Serilog;
 using Microsoft.Extensions.Logging;
 using Sentry;
+using System.Diagnostics;
 
 namespace TrampolineCenterAPI.Controllers
 {
@@ -17,6 +18,8 @@ namespace TrampolineCenterAPI.Controllers
     {
         private readonly ApplicationDbContext dbContext;
         private readonly ILogger<ClientsController> _logger;
+
+        private static readonly ActivitySource _activitySource = new("Tracing.NET");
 
         // Sentry
         private readonly IHub _sentryHub;
@@ -38,10 +41,34 @@ namespace TrampolineCenterAPI.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetContacts()
-        {
+        {            
             getContactsCounter.Inc();
 
-            var childSpan = _sentryHub.GetSpan()?.StartChild("additional-work");
+            using (var activity = _activitySource.StartActivity("MyAct1"))
+            {
+                if (activity != null)
+                {
+                    activity.SetTag("First", 1);
+                    await Task.Delay(1000);
+
+                    activity.SetTag("Second", "MY ACT WORK!!!");
+                    activity.SetTag("SOME", new string[] { "work it", "make it", "do it", "make us" });
+                    activity.Stop();
+                }
+            }
+
+            using (var activity = _activitySource.StartActivity("MyAct2"))
+            {
+                if (activity != null)
+                {
+                    activity.SetTag("First", 1);
+                    await Task.Delay(1000);
+
+                    activity.SetTag("Second", "MY ACT WORK!!!");
+                    activity.SetTag("SOME", new string[] { "work it", "make it", "do it", "make us" });
+                    activity.Stop();
+                }
+            }
 
             using (Metrics.CreateHistogram("clients_controller_get_contacts_duration_seconds", "Duration of ClientsController.GetContacts method").NewTimer())
             {
@@ -53,13 +80,11 @@ namespace TrampolineCenterAPI.Controllers
                     // Добавляем лог в Loki
                     _logger.LogInformation("GetContacts method called.");
 
-                    childSpan?.Finish(SpanStatus.Ok);
 
                     return Ok(clients);
                 }
                 catch (Exception ex)
                 {
-                    childSpan?.Finish(ex);
                     // Добавляем лог в Loki при ошибке
                     _logger.LogError(ex, "Error in GetContacts method.");
                     return StatusCode(500, "Internal Server Error");
@@ -71,7 +96,6 @@ namespace TrampolineCenterAPI.Controllers
         [Route("{id:guid}")]
         public async Task<IActionResult> GetContact([FromRoute] Guid id)
         {
-            var childSpan = _sentryHub.GetSpan()?.StartChild("additional-work");
             try
             {
                 var contact = await dbContext.Clients.FindAsync(id);
@@ -84,13 +108,11 @@ namespace TrampolineCenterAPI.Controllers
                 // Добавляем лог в Loki
                 _logger.LogInformation($"GetContact method called for contact with Id: {id}");
 
-                childSpan?.Finish(SpanStatus.Ok);
 
                 return Ok(contact);
             }
             catch (Exception ex)
             {
-                childSpan?.Finish(ex);
                 // Добавляем лог в Loki при ошибке
                 _logger.LogError(ex, "Error in GetContact method.");
                 return StatusCode(500, "Internal Server Error");
@@ -102,7 +124,6 @@ namespace TrampolineCenterAPI.Controllers
         {
             addContactCounter.Inc();
 
-            var childSpan = _sentryHub.GetSpan()?.StartChild("additional-work");
 
             using (Metrics.CreateHistogram("clients_controller_add_contact_duration_seconds", "Duration of ClientsController.AddContact method").NewTimer())
             {
@@ -127,13 +148,11 @@ namespace TrampolineCenterAPI.Controllers
                     // Добавляем лог в Loki
                     _logger.LogInformation($"AddContact method called for contact with Id: {contact.Id}");
 
-                    childSpan?.Finish(SpanStatus.Ok);
 
                     return Ok(contact);
                 }
                 catch (Exception ex)
                 {
-                    childSpan?.Finish(ex);
                     // Добавляем лог в Loki при ошибке
                     _logger.LogError(ex, "Error in AddContact method.");
                     return StatusCode(500, "Internal Server Error");
@@ -147,7 +166,6 @@ namespace TrampolineCenterAPI.Controllers
         {
             updateContactCounter.Inc();
 
-            var childSpan = _sentryHub.GetSpan()?.StartChild("additional-work");
 
             using (Metrics.CreateHistogram("clients_controller_update_contact_duration_seconds", "Duration of ClientsController.UpdateContact method").NewTimer())
             {
@@ -171,7 +189,6 @@ namespace TrampolineCenterAPI.Controllers
                         // Добавляем лог в Loki
                         _logger.LogInformation($"UpdateContact method called for contact with Id: {id}");
 
-                        childSpan?.Finish(SpanStatus.Ok);
 
                         return Ok(contact);
                     }
@@ -180,7 +197,6 @@ namespace TrampolineCenterAPI.Controllers
                 }
                 catch (Exception ex)
                 {
-                    childSpan?.Finish(ex);
                     // Добавляем лог в Loki при ошибке
                     _logger.LogError(ex, "Error in UpdateContact method.");
                     return StatusCode(500, "Internal Server Error");
@@ -194,7 +210,6 @@ namespace TrampolineCenterAPI.Controllers
         {
             deleteContactCounter.Inc();
 
-            var childSpan = _sentryHub.GetSpan()?.StartChild("additional-work");
 
             using (Metrics.CreateHistogram("clients_controller_delete_contact_duration_seconds", "Duration of ClientsController.DeleteContact method").NewTimer())
             {
@@ -214,7 +229,6 @@ namespace TrampolineCenterAPI.Controllers
                         // Добавляем лог в Loki
                         _logger.LogInformation($"DeleteContact method called for contact with Id: {id}");
 
-                        childSpan?.Finish(SpanStatus.Ok);
 
                         return Ok(contact);
                     }
@@ -223,7 +237,6 @@ namespace TrampolineCenterAPI.Controllers
                 }
                 catch (Exception ex)
                 {
-                    childSpan?.Finish(ex);
                     // Добавляем лог в Loki при ошибке
                     _logger.LogError(ex, "Error in DeleteContact method.");
                     return StatusCode(500, "Internal Server Error");
